@@ -306,7 +306,11 @@
       <artifactId>gson</artifactId>
       <version>2.2.4</version>
     </dependency>    
-
+	<dependency>
+		<groupId>edu.usc.ir</groupId>
+		<artifactId>age-classifier</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+	</dependency>
     <!-- Test dependencies -->
     <dependency>
       <groupId>junit</groupId>
