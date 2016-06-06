@@ -30,43 +30,40 @@ import java.util.logging.Logger;
 import org.apache.commons.io.IOUtils;
 import org.apache.tika.Tika;
 import org.apache.tika.config.TikaConfig;
-import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AbstractParser;
 import org.apache.tika.parser.ParseContext;
 import org.xml.sax.ContentHandler;
-import org.xml.sax.SAXException;
 
 import edu.usc.ir.nlp.classifier.AgeClassifier;
+import edu.usc.ir.nlp.classifier.AgePredictorResponse;
 
-public class AgeParser extends AbstractParser {
+/**
+ * Parser for extracting features from text. Below features are extracted <br/>
+ * <li>Author Age</li>
+ */
+public class TextFeatureParser extends AbstractParser {
 
-	/**
-	 * TODO - Regenerate after completing
-	 */
-	private static final long serialVersionUID = 2724805149960407978L;
+	private static final long serialVersionUID = 1108439049093046832L;
 
-	private static final Logger LOG = Logger.getLogger(AgeParser.class.getName());
+	private static final Logger LOG = Logger.getLogger(TextFeatureParser.class.getName());
 
+	public static final String MD_KEY_ESTIMATED_AGE_RANGE = "Estimated-Author-Age-Range";
 	public static final String MD_KEY_ESTIMATED_AGE = "Estimated-Author-Age";
 
 	private static AgeClassifier ageClassifier;
-	private static String ageClassifierServiceUri;
+    private TextFeatureParserConfig config = new TextFeatureParserConfig();
 
 	private static final MediaType MEDIA_TYPE = MediaType.TEXT_PLAIN;
 	private static final Set<MediaType> SUPPORTED_TYPES = Collections.singleton(MEDIA_TYPE);
 	public Tika secondaryParser;
 	private static volatile boolean available = false;
 
-	static {
-		// TODO : check availability of Age Rest server and set below flag
-		available = true;
-	}
-
-	public AgeParser() {
+	public TextFeatureParser() {
 		try {
 			secondaryParser = new Tika(new TikaConfig());
+			available = true;
 		} catch (Exception e) {
 			available = false;
 			LOG.log(Level.SEVERE, "Unable to initialize secondary parser");
@@ -82,27 +79,26 @@ public class AgeParser extends AbstractParser {
 	 * USED in test cases to mock response of AgeClassifier
 	 */
 	protected static void setAgePredictorClient(AgeClassifier ageClassifier) {
-		if (AgeParser.ageClassifier == null) {
-			AgeParser.ageClassifier = ageClassifier;
+		if (TextFeatureParser.ageClassifier == null) {
+			TextFeatureParser.ageClassifier = ageClassifier;
 		}
 	}
 
 	public AgeClassifier getAgePredictorClient() {
 		if (ageClassifier == null) {
-			ageClassifier = new AgeClassifier();
+			ageClassifier = new AgeClassifier(config.getAgeRestEndpoint());
 		}
 		return ageClassifier;
 	}
 
 	@Override
-	public void parse(InputStream inputStream, ContentHandler handler, Metadata metadata, ParseContext context)
-			throws IOException, SAXException, TikaException {
+	public void parse(InputStream inputStream, ContentHandler handler, Metadata metadata, ParseContext context) throws IOException {
 		/**
-		 * Check Availability of AgeClassifier. Unavailability could be due to service not available or 
+		 * Check Availability of Age-Predictor. Unavailability could be due to Age-Predictor server not started 
 		 */
+		this.config = context.get(TextFeatureParserConfig.class, config);
 		if (!available) {
-			LOG.log(Level.SEVERE, 
-					String.format("Age Predcitor server not avaialble. Tried with URL '%s'",ageClassifierServiceUri));
+			LOG.log(Level.SEVERE, "Parser Unavailable, check your configuration");
 			return;
 		}
 		
@@ -119,11 +115,21 @@ public class AgeParser extends AbstractParser {
 		/**
 		 * Call AgeClassifier to get predicted Age
 		 */
-		String predictedAge = getAgePredictorClient().predictAuthorAge(IOUtils.toString(reader));
-		
-		if (predictedAge != null && !predictedAge.trim().isEmpty()) {
-			metadata.add(MD_KEY_ESTIMATED_AGE, predictedAge);
+		try {
+			AgePredictorResponse predictAuthorAge = getAgePredictorClient().predictAuthorAge(IOUtils.toString(reader));
+			
+			int predictedAge = predictAuthorAge.getPredictedAge();
+			String predictedAgeRange = predictAuthorAge.getPredictedAgeRange();
+			
+			metadata.add(MD_KEY_ESTIMATED_AGE, Integer.toString(predictedAge) );
+			if (predictedAgeRange != null && !predictedAgeRange.trim().isEmpty()) {
+				metadata.add(MD_KEY_ESTIMATED_AGE_RANGE, predictedAgeRange);
+			}
+		} catch (Exception e) {
+			LOG.log(Level.SEVERE, "Age Predcitor server not avaialble. Tried with URL {0}",config.getAgeRestEndpoint());
+			return;
 		}
+		
 	}
 
 }

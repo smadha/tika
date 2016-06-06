@@ -31,14 +31,16 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import edu.usc.ir.nlp.classifier.AgeClassifier;
+import edu.usc.ir.nlp.classifier.AgePredictorResponse;
 
-public class AgeParserTest extends TikaTest {
+public class TextFeatureParserTest extends TikaTest {
 
     private static final String CONFIG_FILE = "tika-config.xml";
     private static final String TEST_TEXT = "I am student at University of Southern California (USC)," +
             " located in Los Angeles . USC's football team is called by name Trojans." +
             " Mr. John McKay was a head coach of the team from 1960 - 1975";
-    private static final String TEST_AGE = "25-27";
+    private static final String TEST_AGE_RANGE = "25-27";
+    private static final int TEST_AGE = 26;
     
     static{
     	/**
@@ -46,11 +48,18 @@ public class AgeParserTest extends TikaTest {
     	 */
     	AgeClassifier mockAgeClassifier = mock(AgeClassifier.class);
     	
-		when(mockAgeClassifier.predictAuthorAge(TEST_TEXT)).thenReturn(TEST_AGE);
-    	AgeParser.setAgePredictorClient(mockAgeClassifier);
+		try {
+			AgePredictorResponse agePredictorResponse = new AgePredictorResponse();
+			agePredictorResponse.setPredictedAge(TEST_AGE);
+			agePredictorResponse.setPredictedAgeRange(TEST_AGE_RANGE);
+			when(mockAgeClassifier.predictAuthorAge(TEST_TEXT)).thenReturn(agePredictorResponse);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+    	TextFeatureParser.setAgePredictorClient(mockAgeClassifier);
     }
     @Test
-    public void testAgeParser() throws Exception {
+    public void testTextFeatureParser() throws Exception {
 
         //test config is added to resources directory
         TikaConfig config = new TikaConfig(getClass().getResourceAsStream(CONFIG_FILE));
@@ -58,10 +67,11 @@ public class AgeParserTest extends TikaTest {
         
         Metadata md = new Metadata();
         tika.parse(new ByteArrayInputStream(TEST_TEXT.getBytes(Charset.defaultCharset())), md);
-        System.out.println(md);
+        
         Assert.assertArrayEquals("Age Parser not invoked.",new String[] {CompositeParser.class.getCanonicalName(), 
-        		AgeParser.class.getCanonicalName()} , md.getValues("X-Parsed-By"));
-        Assert.assertArrayEquals("Wrong Age predicted.", new String[] {TEST_AGE} , md.getValues(AgeParser.MD_KEY_ESTIMATED_AGE));
+        		TextFeatureParser.class.getCanonicalName()} , md.getValues("X-Parsed-By"));
+        Assert.assertArrayEquals("Wrong age range predicted.", new String[] {TEST_AGE_RANGE} , md.getValues(TextFeatureParser.MD_KEY_ESTIMATED_AGE_RANGE));
+        Assert.assertArrayEquals("Wrong age predicted.", new String[] {Integer.toString(TEST_AGE)} , md.getValues(TextFeatureParser.MD_KEY_ESTIMATED_AGE));
         
         
     }

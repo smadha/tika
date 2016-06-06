@@ -17,7 +17,7 @@
 -->
 <properties>
     <parsers>
-        <parser class="org.apache.tika.parser.nlp.classifier.AgeParser">
+        <parser class="org.apache.tika.parser.nlp.classifier.TextFeatureParser">
             <mime>text/plain</mime>
             <mime>text/html</mime>
             <mime>application/xhtml+xml</mime>
