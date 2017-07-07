@@ -107,7 +107,7 @@ def modelFiles = //filePath : url
         [(prefixPath + "ner-person.bin"): (urlPrefix + "/en-ner-person.bin"),
           (prefixPath + "ner-location.bin"): (urlPrefix + "/en-ner-location.bin"),
           (prefixPath + "ner-organization.bin"): (urlPrefix + "/en-ner-organization.bin"),
-          (prefixPath + "en-pos-maxent.bin"): (urlPrefix + "/en-post-maxent.bin"),
+          (prefixPath + "en-pos-maxent.bin"): (urlPrefix + "/en-pos-maxent.bin"),
           (prefixPath +    "en-sent.bin"): (urlPrefix + "/en-sent.bin"),
           (prefixPath +    "en-token.bin"): (urlPrefix + "/en-token.bin"),
           (prefixPath + "ner-date.bin"): (urlPrefix + "/en-ner-date.bin"),
